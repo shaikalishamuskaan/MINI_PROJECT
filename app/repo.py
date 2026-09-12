@@ -141,6 +141,47 @@ class ReviewRepository:
         )
 
         return list(result.all())
+    
+    async def get_rating_statistics(self):
+        result = await self.session.execute(
+        select(
+            Media.id,
+            Media.title,
+            Media.genre,
+            func.avg(Review.rating).label("average_rating"),
+            func.count(Review.id).label("rating_count"),
+        )
+        .join(Review, Media.id == Review.media_id)
+        .group_by(Media.id)
+    )
+
+        return list(result.all())
+    async def get_user_genre_ratings(
+    self,
+    user_id: int,
+):
+        result = await self.session.execute(
+        select(
+            Media.genre,
+            func.avg(Review.rating).label("average_rating"),
+        )
+        .join(Review, Media.id == Review.media_id)
+        .where(Review.user_id == user_id)
+        .group_by(Media.genre)
+    )
+
+        return list(result.all())
+    async def get_user_reviewed_media_ids(
+    self,
+    user_id: int,
+) -> set[int]:
+
+        result = await self.session.execute(
+            select(Review.media_id)
+            .where(Review.user_id == user_id)
+        )
+
+        return set(result.scalars().all())
 
 class FavoriteRepository:
 
@@ -183,3 +224,4 @@ async def get_all_media(self) -> list[Media]:
     )
 
     return list(result.scalars().all())
+

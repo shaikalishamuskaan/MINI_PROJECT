@@ -12,11 +12,13 @@ from app.repo import (
     MediaRepository,
     ReviewRepository,
     UserRepository,
+    FavoriteRepository,
 )
 from app.services import (
     MediaService,
     ReviewService,
     UserService,
+    FavoriteService,
 )
 
 
@@ -173,7 +175,7 @@ async def test_review_service_get_reviews(session):
 
     assert len(reviews) == 1
     assert reviews[0].rating == 5
-    
+
 @pytest.mark.asyncio
 async def test_review_service_get_top_rated(session):
 
@@ -217,3 +219,79 @@ async def test_review_service_get_top_rated(session):
 
     assert result_media.title == "Inception"
     assert average_rating == 5
+
+@pytest.mark.asyncio
+async def test_favorite_service_adds_favorite(session):
+
+    user_repository = UserRepository(session)
+    media_repository = MediaRepository(session)
+    favorite_repository = FavoriteRepository(session)
+
+    user_service = UserService(user_repository)
+    media_service = MediaService(media_repository)
+
+    user = await user_service.create_user(
+        username="alisha",
+        password_hash="hashed_password",
+    )
+
+    media = await media_service.create_media(
+        title="Inception",
+        media_type="movie",
+        genre="Sci-Fi",
+        release_year=2010,
+    )
+
+    favorite_service = FavoriteService(
+        favorite_repository,
+        user_repository,
+        media_repository,
+    )
+
+    favorite = await favorite_service.add_favorite(
+        user_id=user.id,
+        media_id=media.id,
+    )
+
+    assert favorite.user_id == user.id
+    assert favorite.media_id == media.id
+
+@pytest.mark.asyncio
+async def test_favorite_service_get_favorites(session):
+
+    user_repository = UserRepository(session)
+    media_repository = MediaRepository(session)
+    favorite_repository = FavoriteRepository(session)
+
+    user_service = UserService(user_repository)
+    media_service = MediaService(media_repository)
+
+    user = await user_service.create_user(
+        username="alisha",
+        password_hash="hashed_password",
+    )
+
+    media = await media_service.create_media(
+        title="Inception",
+        media_type="movie",
+        genre="Sci-Fi",
+        release_year=2010,
+    )
+
+    favorite_service = FavoriteService(
+        favorite_repository,
+        user_repository,
+        media_repository,
+    )
+
+    await favorite_service.add_favorite(
+        user_id=user.id,
+        media_id=media.id,
+    )
+
+    favorites = await favorite_service.get_favorites(
+        user.id
+    )
+
+    assert len(favorites) == 1
+    assert favorites[0].title == "Inception"

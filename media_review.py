@@ -1,11 +1,13 @@
 import argparse
 import asyncio
+import logging
 
-
+from app.logging_config import setup_logging
 from app.db import AsyncSessionLocal, create_tables
-from app.repo import MediaRepository, UserRepository, ReviewRepository
-from app.services import MediaService, UserService, ReviewService
-
+from app.repo import MediaRepository, UserRepository, ReviewRepository, FavoriteRepository
+from app.services import MediaService, UserService, ReviewService, FavoriteService
+from app.bulk import process_bulk_reviews
+from app.recommendation import RecommendationEngine
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Media Review System"
@@ -60,11 +62,43 @@ def create_parser():
         metavar="MEDIA_ID",
         help="Show reviews for media",
 )
+    parser.add_argument(
+    "--favorite",
+    type=int,
+    metavar="MEDIA_ID",
+    help="Add media to user's favorites",
+)
+
+    parser.add_argument(
+    "--favorites",
+    action="store_true",
+    help="Show user's favorite media",
+)
+    parser.add_argument(
+    "--bulk-review",
+    type=str,
+    metavar="FILE",
+    help="Import reviews from a CSV file",
+)
+
+    parser.add_argument(
+    "--recommend",
+    type=int,
+    metavar="USER_ID",
+    help="Get personalized recommendations",
+)
 
     return parser
 
 
 async def main():
+
+    setup_logging()
+
+    logger = logging.getLogger(__name__)
+
+    logger.info("Media Review System started")
+
 
     await create_tables()
 
@@ -72,7 +106,8 @@ async def main():
     args = parser.parse_args()
 
     async with AsyncSessionLocal() as session:
-         
+
+        favorite_repository = FavoriteRepository(session)
         review_repository = ReviewRepository(session)
         user_repository = UserRepository(session)
         media_repository = MediaRepository(session)
@@ -83,6 +118,14 @@ async def main():
         review_repository,
         user_repository,
         media_repository,
+    )
+        favorite_service = FavoriteService(
+        favorite_repository,
+        user_repository,
+        media_repository,
+    )
+        recommendation_engine = RecommendationEngine(
+        review_repository
     )
 
         if args.add_user:
@@ -207,7 +250,113 @@ async def main():
             except ValueError as error:
                 print(f"Error: {error}")
 
+        elif args.favorite:
+
+            if args.user_id is None:
+                print("Error: --user-id is required.")
+                return
+
+            try:
+                favorite = await favorite_service.add_favorite(
+                    user_id=args.user_id,
+                    media_id=args.favorite,
+                )
+
+                print(
+                    f"Media {favorite.media_id} "
+                    f"added to favorites."
+                )
+
+            except ValueError as error:
+                print(f"Error: {error}")
+        elif args.favorites:
+
+            if args.user_id is None:
+                print("Error: --user-id is required.")
+                return
+
+            try:
+                favorites = await favorite_service.get_favorites(
+                    args.user_id
+                )
+
+                if not favorites:
+                    print("No favorites found.")
+                    return
+
+                for media in favorites:
+                    print(
+                        f"{media.id}. "
+                        f"{media.title} | "
+                        f"{media.media_type} | "
+                        f"{media.genre} | "
+                        f"{media.release_year}"
+                    )
+
+            except ValueError as error:
+                print(f"Error: {error}")
+        elif args.bulk_review:
+
+            if args.user_id is None:
+                print("Error: --user-id is required.")
+                return
+
+            try:
+                successful, failed = await process_bulk_reviews(
+                    file_name=args.bulk_review,
+                    user_id=args.user_id,
+                    review_service=review_service,
+                )
+
+                print(
+                    f"Bulk review completed. "
+                    f"Successful: {successful}, "
+                    f"Failed: {failed}"
+                )
+
+            except FileNotFoundError:
+                print("Error: Review file not found.")
+
+            except ValueError as error:
+                print(f"Error: {error}")
+
+        elif args.recommend:
+
+                try:
+                    recommendations = (
+                        await recommendation_engine.recommend(
+                            user_id=args.recommend,
+                        )
+                    )
+
+                    if not recommendations:
+                        print("No recommendations available.")
+                        return
+
+                    print("Recommended for you:")
+
+                    for item in recommendations:
+                        print(
+                            f"{item['media_id']}. "
+                            f"{item['title']} | "
+                            f"{item['genre']} | "
+                            f"Rating: {item['average_rating']:.2f} | "
+                            f"Score: {item['score']:.2f}"
+                        )
+
+                except ValueError as error:
+                    print(f"Error: {error}")
+
         else:
             parser.print_help()
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nApplication stopped.")
+    except Exception as error:
+        logger = logging.getLogger(__name__)
+        logger.exception("Unexpected application error")
+        print(f"Error: {error}")

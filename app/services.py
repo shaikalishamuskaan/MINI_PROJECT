@@ -1,5 +1,7 @@
-from app.repo import MediaRepository, ReviewRepository, UserRepository
+import logging
+from app.repo import MediaRepository, ReviewRepository, UserRepository, FavoriteRepository
 
+logger = logging.getLogger(__name__)
 
 class UserService:
 
@@ -103,6 +105,12 @@ class ReviewService:
     ):
         # Business validation
         if rating < 1 or rating > 5:
+            logger.warning(
+            "Invalid rating: user_id=%s media_id=%s rating=%s",
+            user_id,
+            media_id,
+            rating,
+        )
             raise ValueError("Rating must be between 1 and 5.")
 
         if not comment.strip():
@@ -128,6 +136,15 @@ class ReviewService:
             comment=comment,
         )
 
+        logger.info(
+            "Review created: user_id=%s media_id=%s rating=%s",
+            user_id,
+            media_id,
+            rating,
+        )
+
+        return review
+
     async def get_reviews(self, media_id: int):
         media = await self.media_repository.get_media(media_id)
 
@@ -141,3 +158,46 @@ class ReviewService:
             raise ValueError("Limit must be positive.")
 
         return await self.review_repository.get_top_rated(limit)
+    
+class FavoriteService:
+
+    def __init__(
+        self,
+        favorite_repository: FavoriteRepository,
+        user_repository: UserRepository,
+        media_repository: MediaRepository,
+    ):
+        self.favorite_repository = favorite_repository
+        self.user_repository = user_repository
+        self.media_repository = media_repository
+
+    async def add_favorite(
+        self,
+        user_id: int,
+        media_id: int,
+    ):
+        user = await self.user_repository.get_user(user_id)
+
+        if user is None:
+            raise ValueError("User not found.")
+
+        media = await self.media_repository.get_media(media_id)
+
+        if media is None:
+            raise ValueError("Media not found.")
+
+        return await self.favorite_repository.add_favorite(
+            user_id=user_id,
+            media_id=media_id,
+        )
+
+    async def get_favorites(self, user_id: int):
+
+        user = await self.user_repository.get_user(user_id)
+
+        if user is None:
+            raise ValueError("User not found.")
+
+        return await self.favorite_repository.get_favorites(
+            user_id
+        )
