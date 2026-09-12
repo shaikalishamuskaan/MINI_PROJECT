@@ -67,6 +67,14 @@ class MediaRepository:
 
         return result.scalar_one_or_none()
 
+    async def get_all_media(self) -> list[Media]:
+
+        result = await self.session.execute(
+            select(Media).order_by(Media.id)
+        )
+
+        return list(result.scalars().all())
+
     async def search_media(self, title: str) -> list[Media]:
 
         result = await self.session.execute(
@@ -168,3 +176,10 @@ class FavoriteRepository:
 
         return list(result.scalars().all())
 
+async def get_all_media(self) -> list[Media]:
+
+    result = await self.session.execute(
+        select(Media).order_by(Media.id)
+    )
+
+    return list(result.scalars().all())
