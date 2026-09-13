@@ -8,6 +8,8 @@ from app.repo import MediaRepository, UserRepository, ReviewRepository, Favorite
 from app.services import MediaService, UserService, ReviewService, FavoriteService
 from app.bulk import process_bulk_reviews
 from app.recommendation import RecommendationEngine
+from app.cache import CacheService
+
 def create_parser():
     parser = argparse.ArgumentParser(
         description="Media Review System"
@@ -114,10 +116,14 @@ async def main():
 
         user_service = UserService(user_repository)
         media_service = MediaService(media_repository)
+
+        cache_service = CacheService()
+
         review_service = ReviewService(
         review_repository,
         user_repository,
         media_repository,
+        cache_service=cache_service,
     )
         favorite_service = FavoriteService(
         favorite_repository,
@@ -370,6 +376,8 @@ async def main():
 
         else:
             parser.print_help()
+
+        await cache_service.close()
 
 
 if __name__ == "__main__":

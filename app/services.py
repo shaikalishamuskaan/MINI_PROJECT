@@ -1,7 +1,9 @@
 import logging
 import bcrypt
+from app.cache import CacheService
 from app.repo import MediaRepository, ReviewRepository, UserRepository, FavoriteRepository
 from app.media.factory import MediaFactory
+from app.models import Review
 logger = logging.getLogger(__name__)
 
 class UserService:
@@ -100,10 +102,12 @@ class ReviewService:
         review_repository: ReviewRepository,
         user_repository: UserRepository,
         media_repository: MediaRepository,
+        cache_service: CacheService | None = None,
     ):
         self.review_repository = review_repository
         self.user_repository = user_repository
         self.media_repository = media_repository
+        self.cache_service = cache_service
 
     async def create_review(
         self,
@@ -115,11 +119,11 @@ class ReviewService:
         # Business validation
         if rating < 1 or rating > 5:
             logger.warning(
-            "Invalid rating: user_id=%s media_id=%s rating=%s",
-            user_id,
-            media_id,
-            rating,
-        )
+                "Invalid rating: user_id=%s media_id=%s rating=%s",
+                user_id,
+                media_id,
+                rating,
+            )
             raise ValueError("Rating must be between 1 and 5.")
 
         if not comment.strip():
@@ -136,13 +140,25 @@ class ReviewService:
 
         if media is None:
             raise ValueError("Media not found.")
-       # Save review
+
+        # Save review
         review = await self.review_repository.create_review(
             user_id=user_id,
             media_id=media_id,
             rating=rating,
             comment=comment,
         )
+
+        # Invalidate cached reviews for this media
+        if self.cache_service:
+            cache_key = f"media_reviews:{media_id}"
+
+            await self.cache_service.delete(cache_key)
+
+            logger.info(
+                "Review cache invalidated: media_id=%s",
+                media_id,
+            )
 
         logger.info(
             "Review created: user_id=%s media_id=%s rating=%s",
@@ -159,14 +175,59 @@ class ReviewService:
         if media is None:
             raise ValueError("Media not found.")
 
-        return await self.review_repository.get_reviews(media_id)
+        cache_key = f"media_reviews:{media_id}"
 
-    async def get_top_rated(self, limit: int = 10):
-        if limit <= 0:
-            raise ValueError("Limit must be positive.")
+        # Check Redis first
+        if self.cache_service:
+            cached_reviews = await self.cache_service.get(cache_key)
 
-        return await self.review_repository.get_top_rated(limit)
+            if cached_reviews is not None:
+                logger.info(
+                    "Review cache hit: media_id=%s",
+                    media_id,
+                )
+
+                return [
+                    Review(
+                        user_id=review["user_id"],
+                        media_id=media_id,
+                        rating=review["rating"],
+                        comment=review["comment"],
+                    )
+                    for review in cached_reviews
+                ]
+
+            logger.info(
+                "Review cache miss: media_id=%s",
+                media_id,
+            )
+
+        # Cache miss → get from database
+        reviews = await self.review_repository.get_reviews(
+            media_id
+        )
+
+        reviews_data = [
+            {
+                "user_id": review.user_id,
+                "rating": review.rating,
+                "comment": review.comment,
+                "created_at": review.created_at.isoformat(),
+            }
+            for review in reviews
+        ]
+
+        # Store result in Redis
+        if self.cache_service:
+            await self.cache_service.set(
+                cache_key,
+                reviews_data,
+            )
+
+        return reviews
     
+    async def get_top_rated(self, limit: int = 10):
+        return await self.review_repository.get_top_rated(limit)
 class FavoriteService:
 
     def __init__(
