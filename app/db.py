@@ -10,7 +10,7 @@ DATABASE_URL = "sqlite+aiosqlite:///data/media_review.db"
 
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,
 )
 
 AsyncSessionLocal = async_sessionmaker(

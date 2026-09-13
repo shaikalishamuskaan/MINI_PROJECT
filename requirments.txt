@@ -2,3 +2,4 @@ SQLAlchemy>=2.0,<2.1
 aiosqlite
 pytest
 pytest-asyncio
+bcrypt

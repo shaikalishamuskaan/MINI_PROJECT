@@ -156,6 +156,17 @@ class ReviewRepository:
     )
 
         return list(result.all())
+        
+    async def get_global_rating_statistics(self):
+        result = await self.session.execute(
+            select(
+                func.sum(Review.rating).label("total_rating"),
+                func.count(Review.id).label("rating_count"),
+            )
+        )
+
+        return result.one()
+
     async def get_user_genre_ratings(
     self,
     user_id: int,
@@ -216,12 +227,4 @@ class FavoriteRepository:
         )
 
         return list(result.scalars().all())
-
-async def get_all_media(self) -> list[Media]:
-
-    result = await self.session.execute(
-        select(Media).order_by(Media.id)
-    )
-
-    return list(result.scalars().all())
 

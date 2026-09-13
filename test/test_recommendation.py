@@ -55,7 +55,7 @@ async def test_recommendations_exclude_reviewed_media(session):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     reviewed_media = await media_service.create_media(
@@ -89,7 +89,7 @@ async def test_recommendations_exclude_reviewed_media(session):
     # a recommendation candidate.
     another_user = await user_service.create_user(
         username="testuser",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     await review_service.create_review(
@@ -125,7 +125,7 @@ async def test_recommendation_limit(session):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     for i in range(5):
@@ -138,7 +138,7 @@ async def test_recommendation_limit(session):
 
         other_user = await user_service.create_user(
             username=f"user{i}",
-            password_hash="hashed_password",
+            password="test_password",
         )
 
         review_service = ReviewService(

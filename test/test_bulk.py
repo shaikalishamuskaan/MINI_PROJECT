@@ -55,7 +55,7 @@ async def test_bulk_review_import(session, tmp_path):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     media = await media_service.create_media(

@@ -34,13 +34,17 @@ class RecommendationEngine:
             for genre, average_rating in genre_ratings
         }
 
-        overall_average = (
-            sum(
-                float(row.average_rating)
-                for row in statistics
-            )
-            / len(statistics)
+        global_stats = (
+            await self.review_repository.get_global_rating_statistics()
         )
+
+        total_rating = int(global_stats.total_rating or 0)
+        rating_count = int(global_stats.rating_count or 0)
+
+        if rating_count == 0:
+            return []
+
+        overall_average = total_rating / rating_count
 
         minimum_votes = 2
 

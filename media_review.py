@@ -134,7 +134,7 @@ async def main():
             try:
                 user = await user_service.create_user(
                     username=username,
-                    password_hash=password,
+                    password=password,
                 )
 
                 print(
@@ -228,7 +228,28 @@ async def main():
                 print(f"Error: {error}")
 
         elif args.search:
-            print(f"Searching for: {args.search}")
+
+            try:
+                media_list = await media_service.search_media(
+                    args.search
+                )
+
+                if not media_list:
+                    print("No media found.")
+                    return
+
+                for media in media_list:
+                    print(
+                        f"{media.id}. "
+                        f"{media.title} | "
+                        f"{media.media_type} | "
+                        f"{media.genre} | "
+                        f"{media.release_year}"
+                    )
+
+            except ValueError as error:
+                print(f"Error: {error}")
+
         elif args.top_rated:
 
             try:

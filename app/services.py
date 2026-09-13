@@ -1,4 +1,5 @@
 import logging
+import bcrypt
 from app.repo import MediaRepository, ReviewRepository, UserRepository, FavoriteRepository
 
 logger = logging.getLogger(__name__)
@@ -8,16 +9,17 @@ class UserService:
     def __init__(self, user_repository: UserRepository):
         self.user_repository = user_repository
 
-    async def create_user(
-        self,
-        username: str,
-        password_hash: str,
-    ):
+    async def create_user(self,username: str,password: str,):
         if not username.strip():
-            raise ValueError("Username cannot be empty.")
+            raise ValueError("Username cannot be empty")
 
-        if not password_hash:
-            raise ValueError("Password hash cannot be empty.")
+        if not password.strip():
+            raise ValueError("Password cannot be empty")
+
+        password_hash = bcrypt.hashpw(
+            password.encode("utf-8"),
+            bcrypt.gensalt(),
+        ).decode("utf-8")
 
         return await self.user_repository.create_user(
             username=username,
@@ -127,9 +129,8 @@ class ReviewService:
 
         if media is None:
             raise ValueError("Media not found.")
-
-        # Save review
-        return await self.review_repository.create_review(
+       # Save review
+        review = await self.review_repository.create_review(
             user_id=user_id,
             media_id=media_id,
             rating=rating,

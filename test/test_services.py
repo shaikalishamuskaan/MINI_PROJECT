@@ -52,12 +52,36 @@ async def test_user_service_creates_user(session):
 
     user = await service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     assert user.username == "alisha"
 
 
+@pytest.mark.asyncio
+async def test_user_service_rejects_empty_username(session):
+
+    repository = UserRepository(session)
+    service = UserService(repository)
+
+    with pytest.raises(ValueError, match="Username cannot be empty"):
+        await service.create_user(
+            username="",
+            password="test_password",
+        )
+
+
+@pytest.mark.asyncio
+async def test_user_service_rejects_empty_password(session):
+
+    repository = UserRepository(session)
+    service = UserService(repository)
+
+    with pytest.raises(ValueError, match="Password cannot be empty"):
+        await service.create_user(
+            username="alisha",
+            password="",
+        )
 @pytest.mark.asyncio
 async def test_media_service_creates_media(session):
 
@@ -73,6 +97,37 @@ async def test_media_service_creates_media(session):
 
     assert media.title == "Inception"
 
+@pytest.mark.asyncio
+async def test_media_service_rejects_empty_title(session):
+
+    repository = MediaRepository(session)
+    service = MediaService(repository)
+
+    with pytest.raises(ValueError, match="Title cannot be empty"):
+        await service.create_media(
+            title="",
+            media_type="movie",
+            genre="Sci-Fi",
+            release_year=2010,
+        )
+
+
+@pytest.mark.asyncio
+async def test_media_service_rejects_invalid_media_type(session):
+
+    repository = MediaRepository(session)
+    service = MediaService(repository)
+
+    with pytest.raises(
+        ValueError,
+        match="Media type must be movie, web_show, or song",
+    ):
+        await service.create_media(
+            title="Inception",
+            media_type="book",
+            genre="Sci-Fi",
+            release_year=2010,
+        )
 
 @pytest.mark.asyncio
 async def test_review_service_rejects_invalid_rating(session):
@@ -96,6 +151,27 @@ async def test_review_service_rejects_invalid_rating(session):
         )
 
 @pytest.mark.asyncio
+async def test_review_service_rejects_empty_comment(session):
+
+    user_repository = UserRepository(session)
+    media_repository = MediaRepository(session)
+    review_repository = ReviewRepository(session)
+
+    service = ReviewService(
+        review_repository,
+        user_repository,
+        media_repository,
+    )
+
+    with pytest.raises(ValueError, match="Comment cannot be empty"):
+        await service.create_review(
+            user_id=1,
+            media_id=1,
+            rating=5,
+            comment="",
+        )
+
+@pytest.mark.asyncio
 async def test_review_service_creates_review(session):
 
     user_repository = UserRepository(session)
@@ -107,7 +183,7 @@ async def test_review_service_creates_review(session):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     media = await media_service.create_media(
@@ -146,7 +222,7 @@ async def test_review_service_get_reviews(session):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     media = await media_service.create_media(
@@ -177,6 +253,56 @@ async def test_review_service_get_reviews(session):
     assert reviews[0].rating == 5
 
 @pytest.mark.asyncio
+async def test_review_service_rejects_nonexistent_user(session):
+
+    user_repository = UserRepository(session)
+    media_repository = MediaRepository(session)
+    review_repository = ReviewRepository(session)
+
+    service = ReviewService(
+        review_repository,
+        user_repository,
+        media_repository,
+    )
+
+    with pytest.raises(ValueError, match="User not found"):
+        await service.create_review(
+            user_id=999,
+            media_id=1,
+            rating=5,
+            comment="Great movie",
+        )
+
+
+@pytest.mark.asyncio
+async def test_review_service_rejects_nonexistent_media(session):
+
+    user_repository = UserRepository(session)
+    media_repository = MediaRepository(session)
+    review_repository = ReviewRepository(session)
+
+    user_service = UserService(user_repository)
+
+    user = await user_service.create_user(
+        username="alisha",
+        password="test_password",
+    )
+
+    service = ReviewService(
+        review_repository,
+        user_repository,
+        media_repository,
+    )
+
+    with pytest.raises(ValueError, match="Media not found"):
+        await service.create_review(
+            user_id=user.id,
+            media_id=999,
+            rating=5,
+            comment="Great movie",
+        )
+
+@pytest.mark.asyncio
 async def test_review_service_get_top_rated(session):
 
     user_repository = UserRepository(session)
@@ -188,7 +314,7 @@ async def test_review_service_get_top_rated(session):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     media = await media_service.create_media(
@@ -232,7 +358,7 @@ async def test_favorite_service_adds_favorite(session):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     media = await media_service.create_media(
@@ -268,7 +394,7 @@ async def test_favorite_service_get_favorites(session):
 
     user = await user_service.create_user(
         username="alisha",
-        password_hash="hashed_password",
+        password="test_password",
     )
 
     media = await media_service.create_media(
