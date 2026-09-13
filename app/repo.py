@@ -148,6 +148,7 @@ class ReviewRepository:
             Media.id,
             Media.title,
             Media.genre,
+            Media.media_type,
             func.avg(Review.rating).label("average_rating"),
             func.count(Review.id).label("rating_count"),
         )
@@ -193,6 +194,31 @@ class ReviewRepository:
         )
 
         return set(result.scalars().all())
+
+    async def get_user_media_type_ratings(
+    self,
+    user_id: int,
+):
+        result = await self.session.execute(
+            select(
+                Media.media_type,
+                func.avg(Review.rating).label(
+                    "average_rating"
+                ),
+            )
+            .join(
+                Media,
+                Media.id == Review.media_id,
+            )
+            .where(
+                Review.user_id == user_id
+            )
+            .group_by(
+                Media.media_type
+            )
+        )
+
+        return result.all()
 
 class FavoriteRepository:
 

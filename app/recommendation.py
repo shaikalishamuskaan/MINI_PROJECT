@@ -5,6 +5,7 @@ class RecommendationEngine:
     def __init__(self, review_repository: ReviewRepository):
         self.review_repository = review_repository
 
+
     async def recommend(
         self,
         user_id: int,
@@ -29,9 +30,20 @@ class RecommendationEngine:
             )
         )
 
+        media_type_ratings = (
+            await self.review_repository.get_user_media_type_ratings(
+                user_id
+            )
+        )
+
         genre_preferences = {
             genre: float(average_rating)
             for genre, average_rating in genre_ratings
+        }
+
+        media_type_preferences = {
+            media_type: float(average_rating)
+            for media_type, average_rating in media_type_ratings
         }
 
         global_stats = (
@@ -72,12 +84,23 @@ class RecommendationEngine:
                 overall_average,
             )
 
-            preference_bonus = (
+            media_type_preference = media_type_preferences.get(
+                row.media_type,
+                overall_average,
+            )
+
+            genre_bonus = (
                 genre_preference - overall_average
             ) * 0.2
 
+            media_type_bonus = (
+                media_type_preference - overall_average
+            ) * 0.1
+
             final_score = (
-                weighted_rating + preference_bonus
+                weighted_rating
+                + genre_bonus
+                + media_type_bonus
             )
 
             recommendations.append(
