@@ -1,7 +1,7 @@
 import logging
 import bcrypt
 from app.repo import MediaRepository, ReviewRepository, UserRepository, FavoriteRepository
-
+from app.media.factory import MediaFactory
 logger = logging.getLogger(__name__)
 
 class UserService:
@@ -63,11 +63,18 @@ class MediaService:
         if release_year <= 0:
             raise ValueError("Release year must be positive.")
 
-        return await self.media_repository.create_media(
-            title=title,
+        media = MediaFactory.create_media(
             media_type=media_type,
+            title=title,
             genre=genre,
             release_year=release_year,
+        )
+
+        return await self.media_repository.create_media(
+            title=media.title,
+            media_type=media.media_type,
+            genre=media.genre,
+            release_year=media.release_year,
         )
 
     async def get_media(self, media_id: int):
