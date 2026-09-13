@@ -1,20 +1,24 @@
-from datetime import datetime
+from datetime import datetime, UTC
 
 from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+
     username: Mapped[str] = mapped_column(
         String(50),
         unique=True,
         nullable=False,
     )
+
     password_hash: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -69,6 +73,7 @@ class Media(Base):
         back_populates="media",
     )
 
+
 class Review(Base):
     __tablename__ = "reviews"
 
@@ -94,7 +99,7 @@ class Review(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
@@ -113,6 +118,7 @@ class Review(Base):
             name="uq_review_user_media",
         ),
     )
+
 
 class Favorite(Base):
     __tablename__ = "favorites"
@@ -134,6 +140,7 @@ class Favorite(Base):
     media: Mapped["Media"] = relationship(
         back_populates="favorites",
     )
+
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -161,7 +168,7 @@ class Notification(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
@@ -172,4 +179,3 @@ class Notification(Base):
     media: Mapped["Media"] = relationship(
         back_populates="notifications",
     )
-

@@ -139,7 +139,8 @@ async def main():
         media_repository,
     )
         recommendation_engine = RecommendationEngine(
-        review_repository
+        review_repository,
+        media_repository,
     )
 
         if args.add_user:

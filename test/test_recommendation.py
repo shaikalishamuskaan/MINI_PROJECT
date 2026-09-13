@@ -99,7 +99,10 @@ async def test_recommendations_exclude_reviewed_media(session):
         comment="Great",
     )
 
-    engine = RecommendationEngine(review_repository)
+    engine = RecommendationEngine(
+    review_repository,
+    media_repository,
+)
 
     recommendations = await engine.recommend(
         user_id=user.id
@@ -154,7 +157,10 @@ async def test_recommendation_limit(session):
             comment="Great",
         )
 
-    engine = RecommendationEngine(review_repository)
+    engine = RecommendationEngine(
+    review_repository,
+    media_repository,
+)
 
     recommendations = await engine.recommend(
         user_id=user.id,
