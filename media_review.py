@@ -4,11 +4,12 @@ import logging
 
 from app.logging_config import setup_logging
 from app.db import AsyncSessionLocal, create_tables
-from app.repo import MediaRepository, UserRepository, ReviewRepository, FavoriteRepository
+from app.repo import MediaRepository, UserRepository, ReviewRepository, FavoriteRepository, NotificationRepository
 from app.services import MediaService, UserService, ReviewService, FavoriteService
 from app.bulk import process_bulk_reviews
 from app.recommendation import RecommendationEngine
 from app.cache import CacheService
+from app.observers.notification import NotificationObserver
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -113,6 +114,12 @@ async def main():
         review_repository = ReviewRepository(session)
         user_repository = UserRepository(session)
         media_repository = MediaRepository(session)
+        notification_repository=NotificationRepository(session)
+
+        notification_observer = NotificationObserver(
+            favorite_repository,
+            notification_repository,
+        )
 
         user_service = UserService(user_repository)
         media_service = MediaService(media_repository)
@@ -124,6 +131,7 @@ async def main():
         user_repository,
         media_repository,
         cache_service=cache_service,
+        observers=[notification_observer],
     )
         favorite_service = FavoriteService(
         favorite_repository,

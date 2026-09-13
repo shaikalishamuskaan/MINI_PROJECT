@@ -4,6 +4,8 @@ from app.cache import CacheService
 from app.repo import MediaRepository, ReviewRepository, UserRepository, FavoriteRepository
 from app.media.factory import MediaFactory
 from app.models import Review
+from app.observers.base import ReviewObserver
+
 logger = logging.getLogger(__name__)
 
 class UserService:
@@ -103,11 +105,13 @@ class ReviewService:
         user_repository: UserRepository,
         media_repository: MediaRepository,
         cache_service: CacheService | None = None,
+        observers:list[ReviewObserver] | None = None
     ):
         self.review_repository = review_repository
         self.user_repository = user_repository
         self.media_repository = media_repository
         self.cache_service = cache_service
+        self.observers = observers or []
 
     async def create_review(
         self,
@@ -147,6 +151,11 @@ class ReviewService:
             media_id=media_id,
             rating=rating,
             comment=comment,
+        )
+
+        await self.notify_observers(
+            user_id=user_id,
+            media_id=media_id,
         )
 
         # Invalidate cached reviews for this media
@@ -228,6 +237,19 @@ class ReviewService:
     
     async def get_top_rated(self, limit: int = 10):
         return await self.review_repository.get_top_rated(limit)
+
+
+    async def notify_observers(
+    self,
+    user_id: int,
+    media_id: int,
+) -> None:
+
+        for observer in self.observers:
+            await observer.update(
+                user_id=user_id,
+                media_id=media_id,
+            )
 class FavoriteService:
 
     def __init__(

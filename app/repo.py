@@ -1,7 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Favorite, Media, Review, User
+from app.models import Favorite, Media, Review, User,Notification
 
 
 class UserRepository:
@@ -253,4 +253,52 @@ class FavoriteRepository:
         )
 
         return list(result.scalars().all())
+    async def get_users_who_favorited(
+    self,
+    media_id: int,
+) -> list[int]:
 
+        result = await self.session.execute(
+            select(Favorite.user_id)
+            .where(Favorite.media_id == media_id)
+        )
+
+        return list(result.scalars().all())
+
+    
+class NotificationRepository:
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create_notification(
+        self,
+        user_id: int,
+        media_id: int,
+        message: str,
+    ) -> Notification:
+
+        notification = Notification(
+            user_id=user_id,
+            media_id=media_id,
+            message=message,
+        )
+
+        self.session.add(notification)
+        await self.session.commit()
+        await self.session.refresh(notification)
+
+        return notification
+
+    async def get_notifications(
+        self,
+        user_id: int,
+    ) -> list[Notification]:
+
+        result = await self.session.execute(
+            select(Notification)
+            .where(Notification.user_id == user_id)
+            .order_by(Notification.created_at.desc())
+        )
+
+        return list(result.scalars().all())
