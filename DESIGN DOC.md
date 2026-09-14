@@ -2,37 +2,56 @@
 
 ## 1. Project Overview
 
-The **Media Review System** is a CLI-based application for reviewing and discovering media such as:
+The **Media Review System** is a terminal-based application for reviewing and discovering media such as:
 
 - Movies
 - Web Shows
 - Songs
 
-Users can create accounts, browse/search media, submit ratings and reviews, mark media as favorites, view highly rated media, and receive personalized recommendations.
+Users can create accounts, authenticate, browse and search media, submit ratings and reviews, mark media as favorites, view highly rated media, receive personalized recommendations, and view notifications.
 
-The project will be developed in **two product versions**.
+The project is developed in two product versions:
 
 ### V1 — Basic Working Product
 
-V1 focuses on a clean, functional product using Python, SQLite, SQLAlchemy, `argparse`, Python `logging`, `pytest`, and Git.
+V1 focuses on a clean working MVP using Python, SQLite, SQLAlchemy, `argparse`, Python `logging`, `pytest`, and Git.
 
-V1 includes user management, media management, reviews, search, top-rated media, favorites, bulk review import, and a Bayesian/weighted-rating recommendation approach.
+V1 includes:
+
+- User management
+- Media management
+- Reviews and ratings
+- Search
+- Top-rated media
+- Favorites
+- Bulk review import
+- Bayesian/weighted recommendations
+- Genre-based preference scoring
+- Async database operations
+- Logging
+- Unit testing
 
 ### V2 — Enhanced Product
 
-V2 improves the same product and keeps the same core ER diagram and overall architecture.
+V2 improves the same product and keeps the same core ER diagram and layered architecture.
 
 V2 adds:
 
-- Factory Pattern for media types
+- Factory Pattern for media creation
 - Redis caching
+- Cache invalidation
 - Observer Pattern for notifications
 - Multithreaded bulk review processing
-- Enhanced recommendation using a suitable recommendation library/advanced algorithm
-- Textual-based terminal UI
-- Improved logging, testing, and error handling
+- Enhanced recommendation scoring
+- bcrypt password hashing
+- Authentication
+- Application session management
+- Textual terminal UI
+- Additional testing and integration
 
-The goal is to first build a reliable V1 and then demonstrate how the same product can be improved 
+The key design principle is:
+
+> **V2 improves V1 instead of replacing V1.**
 
 ---
 
@@ -43,28 +62,41 @@ The project demonstrates practical use of:
 1. Python application development
 2. Relational database design
 3. SQLAlchemy ORM
-4. Layered architecture
-5. Design patterns
-6. Caching
-7. Concurrency
-8. Recommendation algorithms
-9. Logging and error handling
-10. Unit testing
-11. Git development practices
+4. Async database access
+5. Layered architecture
+6. Factory Pattern
+7. Observer Pattern
+8. Caching
+9. Concurrency
+10. Recommendation algorithms
+11. Authentication and session management
+12. Logging and error handling
+13. Unit testing
+14. Git development practices
 
+---
 
+# 3. Functional Requirements
 
-## 3. Functional Requirements
+## 3.1 User Management
 
-### 3.1 User Management
+The system supports:
 
 - Create users
-- Find/validate users
+- Find and validate users
 - Store usernames uniquely
 - Store password hashes
-- Authentication/session management may be added as a bonus
+- Login using username and password
+- Logout
+- Maintain a simple application session
 
-### 3.2 Media Management
+Passwords are hashed using `bcrypt` and are never stored as plain text.
+
+The current session is maintained in memory for the running application process.
+
+---
+
+## 3.2 Media Management
 
 The system supports:
 
@@ -80,7 +112,11 @@ Each media item contains:
 - Genre
 - Release year
 
-### 3.3 Reviews
+V2 uses the **Factory Pattern** to centralize media object creation.
+
+---
+
+## 3.3 Reviews
 
 Users can submit reviews containing:
 
@@ -90,38 +126,70 @@ Users can submit reviews containing:
 - User reference
 - Media reference
 
-Validation:
+Validation includes:
 
-- User exists
-- Media exists
-- Rating is between 1 and 5
-- Comment is not empty
+- User must exist
+- Media must exist
+- Rating must be between 1 and 5
+- Comment must not be empty
 
-A unique constraint on `(user_id, media_id)` can enforce one review per user per media item.
+A unique constraint on `(user_id, media_id)` enforces one review per user per media item.
 
-### 3.4 Favorites
+---
+
+## 3.4 Favorites
 
 Users can mark media as favorites.
 
-The same user cannot favorite the same media item more than once.
+The `FAVORITES` table uses a composite primary key:
 
-### 3.5 Search
+```text
+(user_id, media_id)
+```
+
+Therefore, the same user cannot favorite the same media item more than once.
+
+Favorites are also used by the notification Observer to determine which users should receive review notifications.
+
+---
+
+## 3.5 Search
 
 Users can search media by title.
 
-### 3.6 Top Rated
+Search is handled through:
 
-The system should provide highly rated media.
+```text
+Textual / argparse
+        ↓
+MediaService
+        ↓
+MediaRepository
+        ↓
+SQLAlchemy
+        ↓
+SQLite
+```
 
-A weighted/Bayesian rating is preferred over a simple average so that an item with very few reviews does not automatically dominate the ranking.
+---
 
-### 3.7 Recommendations
+## 3.6 Top Rated
+
+The system provides highly rated media.
+
+The project uses weighted/Bayesian scoring rather than relying only on a simple average.
+
+This prevents an item with a very small number of ratings from automatically dominating the ranking.
+
+---
+
+## 3.7 Recommendations
 
 The system provides personalized recommendations.
 
-#### V1 — Bayesian Recommendation
+### V1 — Bayesian Recommendation
 
-The first recommendation engine will be implemented directly in the project using a Bayesian/weighted-rating approach.
+The recommendation engine is implemented directly in the project using a Bayesian/weighted-rating approach.
 
 ```text
 Weighted Rating =
@@ -137,60 +205,93 @@ Where:
 - `C` = overall average rating across media
 - `m` = minimum number of ratings used as the confidence threshold
 
-The weighted score can be combined with user preference information such as genre preferences.
+The V1 recommendation score is enhanced with user preference information such as:
 
-#### V2 — Enhanced Recommendation
+- Genre preferences
+- Media-type preferences
 
-After V1 is stable, the recommendation system will be improved using a suitable recommendation library or advanced algorithm.
+Already-reviewed media is excluded from recommendations.
 
-Possible approaches:
+### V2 — Enhanced Recommendation
 
-- Content-based recommendation
-- Collaborative filtering
-- Hybrid recommendation
+The implemented V2 recommendation engine enhances the Bayesian score with additional user preference signals.
 
-The final approach will be selected based on the available project data and the results of the V1 implementation.
+The current implementation does **not** claim a separate collaborative-filtering or external recommendation-library implementation.
 
----
+The effective flow is:
 
-## 4. Non-Functional Requirements
-
-### Maintainability
-Business logic should be separated from CLI and database code.
-
-### Reliability
-Invalid input and individual bulk-review failures should be handled without unnecessarily terminating the complete application.
-
-### Performance
-Frequently accessed information can be cached in V2.
-
-### Extensibility
-New media types and functionality should be possible without major changes to existing business logic.
-
-### Testability
-Business logic should be testable independently from the CLI.
-
-### Observability
-Important operations and failures should be recorded through Python logging.
-
-### Version Control
-Development should be represented through multiple meaningful Git commits.
+```text
+User Review History
+        +
+Genre Preferences
+        +
+Media-Type Preferences
+        +
+Bayesian / Weighted Rating
+        |
+        v
+Enhanced Recommendation Score
+        |
+        v
+Ranked Recommendations
+```
 
 ---
 
-## 5. Technology Stack
+# 4. Non-Functional Requirements
+
+## Maintainability
+
+Business logic is separated from UI and database access through service and repository layers.
+
+## Reliability
+
+Invalid input and individual bulk-review failures should not unnecessarily terminate the complete application.
+
+## Performance
+
+Frequently accessed review data is cached in Redis in V2.
+
+Bulk reviews can be processed concurrently using `ThreadPoolExecutor`.
+
+## Extensibility
+
+New media types can be introduced through the Factory Pattern without spreading media-specific creation logic across the application.
+
+## Testability
+
+Business logic is testable independently from the UI.
+
+## Observability
+
+Important operations and failures are recorded using Python logging.
+
+## Security
+
+Passwords are hashed using bcrypt and passwords are not written to application logs.
+
+## Version Control
+
+Development is represented through meaningful Git commits for major features.
+
+---
+
+# 5. Technology Stack
 
 | Area | Technology |
 |---|---|
 | Language | Python |
 | CLI | argparse |
-| Terminal UI | Textual (V2) |
+| Terminal UI | Textual |
 | Database | SQLite |
-| ORM | SQLAlchemy |
-| Cache | Redis (V2) |
-| Concurrency | ThreadPoolExecutor (V2) |
+| ORM | SQLAlchemy 2.x |
+| Async SQLite Driver | aiosqlite |
+| Cache | Redis |
+| Windows Redis-compatible Server | Memurai |
+| Concurrency | ThreadPoolExecutor |
+| Password Hashing | bcrypt |
 | Logging | Python `logging` |
-| Testing | pytest |
+| Testing | pytest / pytest-asyncio |
 | Version Control | Git |
 
 ---
@@ -259,394 +360,873 @@ erDiagram
 ## 6.2 ER Diagram Explanation
 
 ### USERS → REVIEWS
+
 One user can write multiple reviews. Each review belongs to one user.
 
 ### MEDIA → REVIEWS
+
 One media item can receive multiple reviews.
 
 Therefore, Users and Media have a many-to-many relationship through Reviews.
 
 ### USERS → FAVORITES
+
 One user can favorite multiple media items.
 
 ### MEDIA → FAVORITES
+
 One media item can be favorited by multiple users.
 
 `FAVORITES` acts as the mapping table between Users and Media.
 
 ### USERS → NOTIFICATIONS
+
 One user can receive multiple notifications.
 
 ### MEDIA → NOTIFICATIONS
-A notification can be associated with the media item that triggered the event.
+
+A notification is associated with the media item that triggered the event.
 
 ---
 
-# 7. System Architecture
+# 7. High-Level Design (HLD)
+
+## 7.1 HLD Overview
 
 The system follows a layered architecture.
 
 The main request path is:
 
 ```text
-CLI / Textual
-      |
-      v
+CLI / Textual UI
+        |
+        v
 Service Layer
-      |
-      v
+        |
+        v
 Repository Layer
-      |
-      v
-SQLAlchemy
-      |
-      v
+        |
+        v
+SQLAlchemy ORM
+        |
+        v
 SQLite
 ```
 
-V2 adds supporting components without changing this core flow.
+V2 adds supporting components around the core flow:
 
-## 7.1 Architecture Diagram
+```text
+                         CLI / Textual UI
+                                |
+                                v
+                         Service Layer
+                         /    |    |    \
+                        /     |    |     \
+                       v      v    v      v
+                  Factory   Cache Observer Recommendation
+                              |      |
+                              v      v
+                            Redis  Notifications
+
+                         Bulk Processing
+                                |
+                                v
+                       ThreadPoolExecutor
+                                |
+                                v
+                           Service Layer
+```
+
+## 7.2 HLD Architecture Diagram
 
 ```mermaid
 graph TD
-    UI["CLI / Textual UI<br/>argparse / terminal interface"]
+    UI["CLI / Textual UI"]
 
-    subgraph App["Application Layer"]
-        SVC["Service Layer<br/>Review / Media / Recommendation"]
-        FACTORY["Media Factory<br/>Movie / WebShow / Song"]
-        POOL["Thread Pool<br/>Bulk Review Processing"]
-        REC["Recommendation Engine<br/>Bayesian V1 / Advanced V2"]
+    subgraph Application["Application Layer"]
+        SERVICE["Service Layer"]
+        FACTORY["Media Factory"]
+        REC["Recommendation Engine"]
+        BULK["Bulk Processor"]
+        AUTH["Authentication"]
+        SESSION["Application Session"]
     end
 
-    subgraph Infra["Infrastructure Layer"]
-        REPO["Repository<br/>SQLAlchemy Data Access"]
-        CACHE["Cache Layer<br/>Cache-Aside / TTL"]
-        OBS["Observer<br/>Review-Added Events"]
-        LOG["Logging<br/>Application Diagnostics"]
+    subgraph Infrastructure["Infrastructure Layer"]
+        REPO["Repository Layer"]
+        CACHE["Redis Cache"]
+        OBS["Notification Observer"]
+        LOG["Logging"]
     end
 
-    subgraph Data["Data Stores"]
-        SQLITE[("SQLite")]
-        REDIS[("Redis")]
-        NOTIF[("Notifications Table")]
+    subgraph Data["Data Layer"]
+        ORM["SQLAlchemy ORM"]
+        DB[("SQLite")]
+        REDIS[("Redis / Memurai")]
     end
 
-    UI --> SVC
-    POOL --> SVC
-    SVC --> FACTORY
-    SVC --> REC
-    SVC --> REPO
-    SVC --> CACHE
-    SVC --> OBS
-    SVC --> LOG
-    REPO --> SQLITE
+    UI --> SERVICE
+    UI --> AUTH
+    AUTH --> SESSION
+    SERVICE --> FACTORY
+    SERVICE --> REC
+    SERVICE --> REPO
+    SERVICE --> CACHE
+    SERVICE --> OBS
+    SERVICE --> LOG
+    BULK --> SERVICE
+    REPO --> ORM
+    ORM --> DB
     CACHE --> REDIS
-    OBS --> NOTIF
-    OBS -.->|reads favorites| SQLITE
+    OBS --> REPO
 ```
 
-**Note:** SQLAlchemy is the ORM used between the Repository and SQLite. It is part of the Repository data-access path.
+## 7.3 HLD Component Responsibilities
 
----
-
-# 8. Architecture Responsibilities
-
-## CLI / Textual UI
+### UI
 
 Responsible for:
 
 - Accepting user input
-- Parsing commands
 - Displaying results
-- Displaying errors and notifications
+- Displaying errors
+- Displaying notifications
+- Triggering application services
 
-The UI should not contain database queries or core business logic.
+The Textual UI is the primary rich terminal interface. The argparse CLI remains available for command-line operations.
 
-V1 uses `argparse`. V2 can add Textual as a richer terminal interface.
+### Service Layer
 
-## Service Layer
+Responsible for:
 
-Contains business/application logic:
+- Business validation
+- Review creation
+- Media operations
+- Favorite operations
+- Authentication coordination
+- Recommendation coordination
+- Cache coordination
+- Observer notification coordination
 
-- Validate review requests
-- Coordinate review creation
-- Search media
-- Calculate top-rated media
-- Generate recommendations
-- Coordinate favorites
-- Trigger review-added events
+### Repository Layer
 
-## Repository Layer
+Responsible for:
 
-Responsible for database operations:
+- User data access
+- Media data access
+- Review data access
+- Favorite data access
+- Notification data access
 
-- Create/find users
-- Create/find media
-- Create/retrieve reviews
-- Retrieve favorites
-- Store notifications
+### SQLAlchemy
 
-The Repository uses SQLAlchemy so database access is not spread throughout the application.
+Provides the ORM and asynchronous database access between repositories and SQLite.
 
-## SQLAlchemy
+### Redis Cache
 
-Provides the ORM layer:
+Stores frequently accessed review data using a cache-aside strategy.
+
+### Observer
+
+Responds to newly created reviews and creates notification records for users who favorited the relevant media.
+
+### Thread Pool
+
+Processes multiple bulk-review rows concurrently. Each worker uses its own database session.
+
+### Recommendation Engine
+
+Calculates and ranks recommendation scores using Bayesian rating information and user preference signals.
+
+### Authentication
+
+Validates username/password credentials using bcrypt.
+
+### Session
+
+Maintains the authenticated user's ID and username in memory for the running application process.
+
+---
+
+# 8. Low-Level Design (LLD)
+
+## 8.1 LLD Overview
+
+The LLD describes the concrete modules, classes, methods, data flow, and interactions used to implement the HLD.
+
+The application is organized into Python modules under `app/`.
 
 ```text
-Python Models
-     |
-     v
-SQLAlchemy ORM
-     |
-     v
+app/
+├── db.py
+├── models.py
+├── repo.py
+├── services.py
+├── recommendation.py
+├── bulk.py
+├── cache.py
+├── auth.py
+├── session.py
+├── ui.py
+├── logging_config.py
+├── media/
+└── observers/
+```
+
+---
+
+## 8.2 Database Layer — `app/db.py`
+
+Responsibilities:
+
+- Create the asynchronous SQLAlchemy engine
+- Configure `AsyncSession`
+- Provide `AsyncSessionLocal`
+- Create database tables
+
+Database URL:
+
+```text
+sqlite+aiosqlite:///data/media_review.db
+```
+
+The application uses:
+
+```text
+create_async_engine()
+async_sessionmaker()
+AsyncSession
+```
+
+For concurrent bulk workers, a separate session is created for each worker.
+
+---
+
+## 8.3 Model Layer — `app/models.py`
+
+Main ORM models:
+
+```text
+User
+Media
+Review
+Favorite
+Notification
+```
+
+Relationships:
+
+```text
+User 1 ---- * Review
+Media 1 ---- * Review
+
+User 1 ---- * Favorite
+Media 1 ---- * Favorite
+
+User 1 ---- * Notification
+Media 1 ---- * Notification
+```
+
+Important constraints:
+
+```text
+User.username → UNIQUE
+
+Review(user_id, media_id) → UNIQUE
+
+Favorite(user_id, media_id) → COMPOSITE PRIMARY KEY
+```
+
+---
+
+## 8.4 Repository Layer — `app/repo.py`
+
+Repositories isolate SQLAlchemy queries from business logic.
+
+### UserRepository
+
+Responsibilities:
+
+- Create user
+- Find user by ID
+- Find user by username
+
+Important method:
+
+```text
+get_user_by_username(username)
+```
+
+### MediaRepository
+
+Responsibilities:
+
+- Create media
+- Find media
+- Retrieve all media
+- Search media
+
+### ReviewRepository
+
+Responsibilities:
+
+- Create review
+- Retrieve reviews for media
+- Retrieve top-rated media
+- Retrieve rating statistics
+- Retrieve global rating statistics
+- Retrieve user genre ratings
+- Retrieve user-reviewed media IDs
+- Retrieve user media-type ratings
+
+### FavoriteRepository
+
+Responsibilities:
+
+- Add favorite
+- Retrieve user favorites
+- Retrieve users who favorited a media item
+
+### NotificationRepository
+
+Responsibilities:
+
+- Create notification
+- Retrieve user notifications
+
+---
+
+# 9. Service Layer Design
+
+## 9.1 UserService
+
+Responsibilities:
+
+- Validate username
+- Validate password
+- Hash password using bcrypt
+- Create users
+
+Flow:
+
+```text
+Create User
+    |
+    v
+Validate Input
+    |
+    v
+bcrypt Hash
+    |
+    v
+UserRepository
+    |
+    v
 SQLite
 ```
 
-Core SQLAlchemy models can remain together in `models.py`.
+## 9.2 AuthService
 
-## Recommendation Engine
+Responsibilities:
 
-### V1
+- Validate login input
+- Find user by username
+- Verify password using bcrypt
+- Return authenticated user
+
+Flow:
 
 ```text
-Bayesian / Weighted Rating
-        +
-User Preference
+Username + Password
         |
         v
-Recommendation Score
+UserRepository
         |
         v
-Ranked Results
+User Found?
+   /          \
+ No           Yes
+ |             |
+Error      bcrypt.checkpw()
+               |
+          Match?
+          /    \
+        No      Yes
+        |        |
+      Error    User
 ```
 
-### V2
+## 9.3 Session
+
+The session is an in-memory application object.
+
+Typical state:
 
 ```text
-Content-Based
-      +
-Collaborative Filtering
-      +
-Bayesian / Popularity
+user_id
+username
+```
+
+It provides operations equivalent to:
+
+```text
+login(user)
+logout()
+is_authenticated
+```
+
+Sessions are process-local. Two separately running terminal processes have separate session objects while sharing the same persistent SQLite database.
+
+---
+
+## 9.4 MediaService
+
+Responsibilities:
+
+- Validate media input
+- Use `MediaFactory`
+- Create media through `MediaRepository`
+- List media
+- Search media
+
+---
+
+## 9.5 ReviewService
+
+Responsibilities:
+
+- Validate review data
+- Verify user
+- Verify media
+- Create review
+- Trigger observers
+- Invalidate review cache
+- Retrieve cached or database reviews
+- Retrieve top-rated media
+
+Review creation flow:
+
+```text
+create_review()
       |
       v
-Hybrid Recommendation
+Validate rating/comment
+      |
+      v
+Verify user
+      |
+      v
+Verify media
+      |
+      v
+Repository.create_review()
+      |
+      +--------> Observer notification
+      |
+      +--------> Redis cache invalidation
+      |
+      v
+Return created review
 ```
 
-## Media Factory
+---
 
-V2 centralizes creation of media-specific objects:
+## 9.6 FavoriteService
+
+Responsibilities:
+
+- Validate user
+- Validate media
+- Add favorites
+- Retrieve favorites
+
+---
+
+# 10. Factory Pattern — LLD
+
+V2 uses the Factory Pattern for media creation.
+
+Classes:
 
 ```text
+Media
+ |
+ +-- Movie
+ +-- WebShow
+ +-- Song
+
 MediaFactory
-    |
-    +-- Movie
-    +-- WebShow
-    +-- Song
 ```
 
-This makes future media types easier to add.
-
-## Cache Layer
-
-V2 introduces Redis using a cache-aside approach:
+Flow:
 
 ```text
-Application
-    |
-    v
-Check Redis
-    |
-    +---- HIT ----> Return cached data
-    |
-    +---- MISS ---> Database
-                       |
-                       v
-                  Store in Redis
-                       |
-                       v
-                     Return
+MediaService
+     |
+     v
+MediaFactory.create_media()
+     |
+     +---- movie ----> Movie
+     |
+     +---- web_show -> WebShow
+     |
+     +---- song -----> Song
 ```
 
-The cache should support TTL, invalidation, and graceful fallback to SQLite if Redis is unavailable.
+The service does not need to directly instantiate every media subtype.
 
-## Observer
+This keeps media creation centralized and makes future media types easier to add.
 
-V2 uses the Observer Pattern for review-related notifications:
+---
+
+# 11. Redis Cache — LLD
+
+The cache is implemented in `app/cache.py`.
+
+The cache uses:
 
 ```text
-Review Added
-     |
-     v
-Observer
-     |
-     v
-Find users who favorited the media
-     |
-     v
-Create Notifications
+CacheService
 ```
 
-Redis Pub/Sub is not required.
+Operations:
 
-## Thread Pool
+```text
+get(key)
+set(key, value)
+delete(key)
+close()
+```
 
-V2 uses `ThreadPoolExecutor` for concurrent bulk review processing:
+Configuration includes:
+
+```text
+Host: localhost
+Port: 6379
+TTL: 300 seconds
+```
+
+Review cache key:
+
+```text
+media_reviews:<media_id>
+```
+
+Example:
+
+```text
+media_reviews:2
+```
+
+### Cache Read
+
+```text
+ReviewService.get_reviews(media_id)
+          |
+          v
+CacheService.get()
+       /       \
+    HIT         MISS
+     |            |
+     v            v
+Return       ReviewRepository
+cached            |
+data              v
+              SQLite
+                 |
+                 v
+              Cache.set()
+                 |
+                 v
+              Return
+```
+
+### Cache Invalidation
+
+After a successful new review:
+
+```text
+Review created
+      |
+      v
+delete(media_reviews:<media_id>)
+```
+
+This prevents stale review data from remaining in the cache after a write.
+
+---
+
+# 12. Observer Pattern — LLD
+
+The Observer implementation is located in:
+
+```text
+app/observers/
+├── base.py
+└── notification.py
+```
+
+## ReviewObserver
+
+Defines the observer interface:
+
+```text
+update(user_id, media_id)
+```
+
+## NotificationObserver
+
+Uses:
+
+```text
+FavoriteRepository
+NotificationRepository
+```
+
+When a review is added:
+
+```text
+ReviewService
+      |
+      v
+NotificationObserver.update()
+      |
+      v
+FavoriteRepository
+      |
+      v
+Users who favorited media
+      |
+      v
+NotificationRepository
+      |
+      v
+Notifications table
+```
+
+The reviewer is excluded from receiving their own review notification.
+
+Redis Pub/Sub is not used.
+
+---
+
+# 13. Multithreaded Bulk Processing — LLD
+
+Bulk processing is implemented in:
+
+```text
+app/bulk.py
+```
+
+The system reads:
+
+```text
+media_id,rating,comment
+```
+
+from a CSV file.
+
+For multiple rows:
 
 ```text
 CSV
  |
  v
+Bulk Processor
+ |
+ v
 ThreadPoolExecutor
  |
- +--> Review 1
- +--> Review 2
- +--> Review 3
- +--> Review 4
+ +---- Worker 1
+ |
+ +---- Worker 2
+ |
+ +---- Worker 3
+ |
+ +---- Worker 4
 ```
 
-Database sessions/connections must be handled safely for concurrent execution.
+Each worker creates its own:
 
-## Logging
+```text
+AsyncSession
+ReviewRepository
+UserRepository
+MediaRepository
+FavoriteRepository
+NotificationRepository
+CacheService
+NotificationObserver
+ReviewService
+```
 
-Logging is a cross-cutting concern used across the application.
+This avoids sharing one `AsyncSession` between concurrent workers.
 
-Events to log include:
+The workers process reviews independently and return success/failure information.
 
-- Application startup/shutdown
-- CLI operations
-- Successful review creation
-- Validation failures
-- Database failures
-- Cache hit/miss
-- Recommendation generation
-- Bulk review success/failure
-- Notification creation
+The final result is:
 
-User-facing messages remain CLI/UI output; logs are for diagnostics and observability.
+```text
+Successful: X
+Failed: Y
+```
+
+A single-row bulk operation can use the caller's existing service/session, while multi-row processing uses independent worker sessions.
 
 ---
 
-# 9. Data Flow
+# 14. Recommendation Engine — LLD
 
-## 9.1 Review Submission — V1
+The recommendation implementation is located in:
 
-Example:
-
-```bash
-python media_review.py --review <media_id> <rating> "<comment>"
+```text
+app/recommendation.py
 ```
 
-Flow:
+The engine receives review and media repositories.
 
-```mermaid
-flowchart TD
-    U["User"] --> CLI["CLI"]
-    CLI --> S["Review Service"]
-    S --> V1["Validate User"]
-    S --> V2["Validate Media"]
-    S --> V3["Validate Rating"]
-    S --> V4["Validate Comment"]
-    S --> R["Repository"]
-    R --> ORM["SQLAlchemy"]
-    ORM --> DB[("SQLite")]
-    DB --> RESP["Success Response"]
-    RESP --> CLI
+It retrieves:
+
+- User review history
+- User genre ratings
+- User media-type ratings
+- Media rating statistics
+- Candidate media
+
+Already-reviewed media is removed from the candidate set.
+
+The scoring process is:
+
+```text
+Candidate Media
+      |
+      v
+Bayesian Weighted Score
+      |
+      +---- Genre Preference
+      |
+      +---- Media-Type Preference
+      |
+      v
+Enhanced Score
+      |
+      v
+Sort Descending
+      |
+      v
+Top-N Recommendations
 ```
 
-## 9.2 Review Submission — V2
+---
+
+# 15. Logging Design
+
+Logging is a cross-cutting concern.
+
+The logging configuration is implemented in:
+
+```text
+app/logging_config.py
+```
+
+Log file:
+
+```text
+logs/media_review.log
+```
+
+Important events include:
+
+- Application startup
+- Review creation
+- Cache hit
+- Cache miss
+- Cache invalidation
+- Bulk review success
+- Bulk review failure
+- Recommendation generation
+- Validation failures
+- Database failures
+- Notification creation
+
+Passwords are never logged.
+
+---
+
+# 16. High-Level Review Submission Flow
 
 ```mermaid
 flowchart TD
     U["User"] --> UI["CLI / Textual"]
-    UI --> S["Review Service"]
-    S --> V["Validation"]
-    S --> R["Repository"]
+    UI --> S["ReviewService"]
+    S --> V["Validate User / Media / Rating / Comment"]
+    V --> R["ReviewRepository"]
     R --> ORM["SQLAlchemy"]
     ORM --> DB[("SQLite")]
-    S --> O["Observer"]
-    O --> N[("Notifications Table")]
+    S --> C["Redis Cache"]
+    S --> O["NotificationObserver"]
+    O --> F["FavoriteRepository"]
+    F --> N["NotificationRepository"]
+    N --> NT[("Notifications Table")]
     S --> L["Logging"]
-    DB --> RESP["Response"]
-    O --> RESP
-    L --> RESP
-    RESP --> UI
 ```
 
 ---
 
-# 10. Search Data Flow
+# 17. Low-Level Review Submission Sequence
 
-### V1
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UI as Textual UI
+    participant S as ReviewService
+    participant UR as UserRepository
+    participant MR as MediaRepository
+    participant RR as ReviewRepository
+    participant O as NotificationObserver
+    participant C as CacheService
+    participant DB as SQLite
+    participant N as NotificationRepository
+
+    U->>UI: Submit review
+    UI->>S: create_review(user_id, media_id, rating, comment)
+    S->>UR: get_user(user_id)
+    UR->>DB: SELECT user
+    DB-->>UR: User
+    S->>MR: get_media(media_id)
+    MR->>DB: SELECT media
+    DB-->>MR: Media
+    S->>RR: create_review(...)
+    RR->>DB: INSERT review
+    DB-->>RR: Review created
+    S->>O: update(user_id, media_id)
+    O->>N: create_notification(...)
+    N->>DB: INSERT notification
+    S->>C: delete(media_reviews:media_id)
+    S-->>UI: Success
+    UI-->>U: Review submitted
+```
+
+---
+
+# 18. Search Data Flow
 
 ```mermaid
 flowchart TD
-    U["User"] --> CLI["CLI"]
-    CLI --> S["Media Service"]
-    S --> R["Repository"]
+    U["User"] --> UI["CLI / Textual"]
+    UI --> S["MediaService"]
+    S --> R["MediaRepository"]
     R --> ORM["SQLAlchemy"]
     ORM --> DB[("SQLite")]
     DB --> RESULTS["Media Results"]
-    RESULTS --> CLI
+    RESULTS --> UI
 ```
 
-### V2
-
-Frequently accessed data can use Redis:
-
-```mermaid
-flowchart TD
-    UI["CLI / Textual"] --> S["Service"]
-    S --> C["Redis Cache"]
-    C -->|Cache HIT| RESULT["Results"]
-    C -->|Cache MISS| R["Repository"]
-    R --> ORM["SQLAlchemy"]
-    ORM --> DB[("SQLite")]
-    DB --> C
-    C --> RESULT
-```
+Search is currently database-backed. The Redis cache is focused on frequently accessed review data rather than all media searches.
 
 ---
 
-# 11. Recommendation Data Flow
-
-## V1
-
-```mermaid
-flowchart TD
-    UID["User ID"] --> RS["Recommendation Service"]
-    RS --> H["User Review History"]
-    RS --> G["User Genre Preferences"]
-    RS --> C["Candidate Media"]
-    RS --> A["Average Ratings"]
-    RS --> RC["Review Counts"]
-    H --> SCORE["Bayesian / Weighted Score"]
-    G --> SCORE
-    C --> SCORE
-    A --> SCORE
-    RC --> SCORE
-    SCORE --> RANK["Rank Candidates"]
-    RANK --> TOP["Top Recommendations"]
-```
-
-## V2
-
-```mermaid
-flowchart TD
-    U["User"] --> RE["Recommendation Engine"]
-    RE --> CB["Content-Based Score"]
-    RE --> CF["Collaborative Score"]
-    RE --> BP["Bayesian / Popularity Score"]
-    CB --> HYB["Hybrid Ranking"]
-    CF --> HYB
-    BP --> HYB
-    HYB --> TOP["Top-N Recommendations"]
-```
-
----
-
-# 12. Bulk Review Data Flow
+# 19. Bulk Review Data Flow
 
 ## V1 — Sequential
 
@@ -654,15 +1234,12 @@ flowchart TD
 flowchart TD
     CSV["CSV File"] --> BP["Bulk Processor"]
     BP --> ROW["Read Row"]
-    ROW --> S["Review Service"]
+    ROW --> S["ReviewService"]
     S --> R["Repository"]
-    R --> ORM["SQLAlchemy"]
-    ORM --> DB[("SQLite")]
+    R --> DB[("SQLite")]
     DB --> NEXT["Next Row"]
     NEXT --> ROW
 ```
-
-A failed row should be recorded and should not unnecessarily stop the remaining valid rows.
 
 ## V2 — Concurrent
 
@@ -674,293 +1251,328 @@ flowchart TD
     TP --> W2["Worker 2"]
     TP --> W3["Worker 3"]
     TP --> W4["Worker 4"]
-    W1 --> S["Review Service"]
-    W2 --> S
-    W3 --> S
-    W4 --> S
+
+    W1 --> S1["ReviewService + Session 1"]
+    W2 --> S2["ReviewService + Session 2"]
+    W3 --> S3["ReviewService + Session 3"]
+    W4 --> S4["ReviewService + Session 4"]
+
+    S1 --> DB[("SQLite")]
+    S2 --> DB
+    S3 --> DB
+    S4 --> DB
 ```
 
-Each task is independent and failures should be isolated.
+Each worker operates independently.
 
 ---
 
-# 13. Notification Data Flow
+# 20. Notification Data Flow
 
 ```mermaid
 flowchart TD
-    U["User submits review"] --> S["Review Service"]
-    S --> SAVE["Review saved successfully"]
+    U["User submits review"] --> S["ReviewService"]
+    S --> SAVE["Review saved"]
     SAVE --> EVENT["Review Added Event"]
-    EVENT --> O["Observer"]
-    O --> F["Find users who favorited media"]
-    F --> CREATE["Create Notification Records"]
-    CREATE --> N[("Notifications Table")]
+    EVENT --> O["NotificationObserver"]
+    O --> F["FavoriteRepository"]
+    F --> USERS["Users who favorited media"]
+    USERS --> N["NotificationRepository"]
+    N --> DB[("Notifications Table")]
 ```
 
 ---
 
-# 14. CLI Commands
+# 21. Textual UI Design
 
-```bash
-python media_review.py --list
-```
-
-List media.
-
-```bash
-python media_review.py --review <media_id> <rating> "<comment>"
-```
-
-Submit a review.
-
-```bash
-python media_review.py --bulk-review <file_name>
-```
-
-Import reviews from a file.
-
-Example:
+The Textual UI is implemented in:
 
 ```text
-media_id,rating,comment
-1,5,Amazing movie
-2,4,Really good
-3,5,Excellent
+app/ui.py
 ```
 
-```bash
-python media_review.py --search <title>
+The UI provides:
+
+- Login
+- Logout
+- Create User
+- Add Media
+- List Media
+- Search Media
+- Top Rated
+- Add Review
+- View Reviews
+- Add Favorite
+- View Favorites
+- Recommendations
+- Notifications
+- Bulk Review CSV import
+
+The UI delegates business operations to services instead of performing database queries directly.
+
+Run:
+
+```powershell
+python -m app.ui
 ```
-
-Search media by title.
-
-```bash
-python media_review.py --top-rated
-```
-
-Show top-rated media.
-
-```bash
-python media_review.py --recommend <user_id>
-```
-
-Generate recommendations.
-
-```bash
-python media_review.py --notification <media_id>
-```
-
-Display relevant notifications.
-
-V2 may provide equivalent functionality through Textual.
 
 ---
 
-# 15. Error Handling
+# 22. Error Handling
 
-The system should handle:
+The system handles:
 
-- Invalid command arguments
+- Empty username
+- Empty password
+- Invalid credentials
 - Invalid media ID
 - Invalid user ID
+- Invalid media type
+- Invalid release year
 - Invalid rating
 - Empty review comments
 - Duplicate reviews
 - Duplicate favorites
 - Invalid bulk-review rows
-- Database errors
-- Redis connection failures
+- Database constraint errors
+- Redis/cache errors
 - Unexpected application errors
 
-User-facing errors should be clear, while technical details should be logged.
+User-facing errors are kept clear.
+
+Technical details are recorded in logs where appropriate.
 
 ---
 
-# 16. Testing Strategy
+# 23. Testing Strategy
 
-Testing should be added throughout development.
+Tests are maintained under:
 
-### Models
+```text
+test/
+```
 
-- Model creation
-- Relationships
-- Constraints
+The test suite covers:
+
+### Authentication
+
+- Successful login
+- Wrong password
+- Unknown user
+- Empty username
+- Empty password
+
+### Sessions
+
+- Login state
+- Logout state
+- Authentication state
 
 ### Repository
 
 - Create/read operations
 - Search
 - Review retrieval
+- Rating statistics
 - Favorites
 - Notifications
 
 ### Services
 
-- Validation
-- Review submission
-- Search
-- Top-rated results
-- Recommendations
+- Input validation
+- User creation
+- Media creation
+- Review creation
+- Favorite operations
 
 ### Recommendation Engine
 
-- Bayesian score calculation
+- Bayesian score
 - Ranking behavior
-- Low-review-count handling
 - User preference behavior
+- Exclusion of already-reviewed media
 
 ### V2
 
 - Factory behavior
-- Cache hit/miss
+- Redis cache hit/miss
 - Cache invalidation
 - Observer notification creation
 - Bulk processing
-- Concurrent task handling
+- Concurrent worker handling
+
+Run:
+
+```powershell
+python -m pytest
+```
 
 ---
 
-# 17. Project Structure
-
-## V1
+# 24. Project Structure
 
 ```text
-media-review-system/
-│
-├── media_review.py
-├── requirements.txt
-├── README.md
-├── .gitignore
+MINI_PROJECT/
 │
 ├── app/
-│   ├── database.py
+│   ├── __init__.py
+│   ├── bulk.py
+│   ├── cache.py
+│   ├── db.py
+│   ├── logging_config.py
 │   ├── models.py
-│   ├── repository.py
-│   ├── services.py
 │   ├── recommendation.py
-│   └── logging_config.py
+│   ├── repo.py
+│   ├── services.py
+│   ├── auth.py
+│   ├── session.py
+│   ├── ui.py
+│   │
+│   ├── media/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── movie.py
+│   │   ├── web_show.py
+│   │   ├── song.py
+│   │   └── factory.py
+│   │
+│   └── observers/
+│       ├── __init__.py
+│       ├── base.py
+│       └── notification.py
 │
-├── tests/
-│   ├── test_models.py
-│   ├── test_repository.py
+├── test/
+│   ├── conftest.py
+│   ├── test_auth.py
+│   ├── test_bulk.py
+│   ├── test_recommendation.py
+│   ├── test_repo.py
 │   ├── test_services.py
-│   └── test_recommendation.py
+│   └── test_session.py
 │
-└── data/
-    └── reviews.csv
-```
-
-## V2
-
-```text
-app/
-├── database.py
-├── models.py
-├── repository.py
-├── services.py
-├── recommendation.py
-├── factory.py
-├── cache.py
-├── observers.py
-├── bulk.py
-└── logging_config.py
+├── data/
+│   ├── media_review.db
+│   └── reviews.csv
+│
+├── logs/
+│   └── media_review.log
+│
+├── media_review.py
+├── DESIGN DOC.md
+├── requirments.txt
+├── pytest.ini
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-# 18. Git Development Strategy
+# 25. Git Development Strategy
 
-The project should have multiple meaningful commits.
+The project uses meaningful Git commits for major logical changes.
 
-Example:
+The actual development history includes:
 
 ```text
-1. Initialize project structure
-2. Add SQLAlchemy database configuration
-3. Add database models
-4. Add user management
-5. Add media management
-6. Add review submission and validation
-7. Add media search
-8. Add top-rated media
-9. Add Bayesian recommendation engine
-10. Add bulk review import
-11. Add application logging
-12. Add V1 unit tests
-13. Tag V1.0
-14. Add media factory
-15. Add enhanced recommendation engine
-16. Add Redis caching
-17. Add observer notifications
-18. Add multithreaded bulk processing
-19. Add Textual terminal UI
-20. Improve V2 tests and error handling
-21. Tag V2.0
+Initialize project structure
+        ↓
+Async SQLAlchemy database configuration
+        ↓
+Database models
+        ↓
+Repository layer
+        ↓
+Review retrieval and top-rated media
+        ↓
+V1 completion
+        ↓
+Media Factory Pattern
+        ↓
+Redis caching
+        ↓
+Enhanced recommendation scoring
+        ↓
+Observer notifications
+        ↓
+Multithreaded bulk review processing
+        ↓
+Textual UI
+        ↓
+Authentication and session management
+        ↓
+Final V2 integration
 ```
 
-Each commit should represent a logical change.
+Each commit represents a logical change rather than an unrelated collection of edits.
 
 ---
 
-# 19. Product Version Strategy
+# 26. Product Version Strategy
 
 ## V1 — Basic Working Product
 
 ```text
 Database
-  |
-  +-- SQLite
-  +-- SQLAlchemy
-  |
+   |
+   +-- SQLite
+   +-- SQLAlchemy
+   |
 Core Features
-  |
-  +-- Users
-  +-- Media
-  +-- Reviews
-  +-- Favorites
-  +-- Search
-  +-- Top Rated
-  +-- Bulk Review
-  |
+   |
+   +-- Users
+   +-- Media
+   +-- Reviews
+   +-- Favorites
+   +-- Search
+   +-- Top Rated
+   +-- Bulk Review
+   |
 Recommendation
-  |
-  +-- Bayesian / Weighted Rating
-  |
+   |
+   +-- Bayesian / Weighted Rating
+   +-- Genre Preferences
+   |
 Engineering
-  |
-  +-- Logging
-  +-- Tests
-  +-- Git
+   |
+   +-- Logging
+   +-- Tests
+   +-- Git
 ```
 
-V1 is complete when the basic product works end-to-end.
+V1 is represented by the Git tag:
 
-## V2 — Enhancements
+```text
+v1.0
+```
+
+## V2 — Enhanced Product
 
 ```text
 V1.0
-  |
-  +-- Factory Pattern
-  +-- Enhanced Recommendation
-  +-- Redis Cache
-  +-- Observer Notifications
-  +-- Multithreaded Bulk Processing
-  +-- Textual UI
-  +-- Better Testing
-  +-- Better Logging/Error Handling
-  |
-V2.0
+ |
+ +-- Media Factory
+ +-- Redis Cache
+ +-- Cache Invalidation
+ +-- Observer Notifications
+ +-- Multithreaded Bulk Processing
+ +-- Enhanced Recommendations
+ +-- bcrypt Authentication
+ +-- Application Sessions
+ +-- Textual UI
+ +-- Additional Tests
+ |
+v2.0
 ```
 
 ---
 
-# 20. Key Design Principle
+# 27. Key Design Principle
 
 > **V2 improves V1 instead of replacing V1.**
 
 The database model remains stable.
 
-The core flow remains:
+The core request flow remains:
 
 ```text
 Presentation
@@ -978,18 +1590,20 @@ V2 adds capabilities around this flow:
 
 ```text
 Factory
-Redis
+Redis Cache
 Observer
 Thread Pool
-Advanced Recommendation
-Textual
+Enhanced Recommendation
+Authentication
+Session
+Textual UI
 ```
 
-This demonstrates how a simple working product can evolve into a more capable and production-oriented application without unnecessarily rewriting the system.
+This demonstrates how a simple working product can evolve into a more capable and production-oriented application without unnecessarily rewriting the core system.
 
 ---
 
-# 21. Final End-to-End Architecture
+# 28. Final End-to-End Architecture
 
 ```mermaid
 flowchart TD
@@ -998,22 +1612,29 @@ flowchart TD
     UI["CLI / Textual UI"]
 
     SERVICE["Service Layer"]
-
+    AUTH["AuthService"]
+    SESSION["Session"]
     REC["Recommendation Engine"]
     FACTORY["Media Factory"]
     POOL["ThreadPoolExecutor"]
-
-    REPO["Repository"]
-    CACHE["Redis Cache"]
-    OBS["Observer"]
+    REPO["Repository Layer"]
+    CACHE["CacheService"]
+    OBS["NotificationObserver"]
     LOG["Logging"]
 
-    ORM["SQLAlchemy"]
+    ORM["SQLAlchemy Async ORM"]
     DB[("SQLite")]
-    NOTIF[("Notifications")]
+    REDIS[("Redis / Memurai")]
+    NOTIF[("Notifications Table")]
 
     USER --> UI
+
+    UI --> AUTH
+    AUTH --> SESSION
+
     UI --> SERVICE
+
+    POOL --> SERVICE
 
     SERVICE --> REC
     SERVICE --> FACTORY
@@ -1022,22 +1643,22 @@ flowchart TD
     SERVICE --> OBS
     SERVICE --> LOG
 
-    POOL --> SERVICE
-
     REPO --> ORM
     ORM --> DB
 
-    CACHE --> DB
-    OBS --> DB
-    OBS --> NOTIF
+    CACHE --> REDIS
+
+    OBS --> REPO
 
     REC --> REPO
     FACTORY --> REPO
+
+    REPO --> NOTIF
 ```
 
 ---
 
-# 22. Development Flow
+# 29. Development Flow
 
 ```text
 BUILD V1
@@ -1050,7 +1671,7 @@ CREATE MEANINGFUL GIT COMMITS
    ↓
 TAG V1.0
    ↓
-ADD ONE V2 ENHANCEMENT AT A TIME
+ADD V2 ENHANCEMENTS
    ↓
 TEST EACH ENHANCEMENT
    ↓
@@ -1058,6 +1679,37 @@ COMMIT EACH FEATURE
    ↓
 INTEGRATE V2
    ↓
+RUN FINAL TEST SUITE
+   ↓
 TAG V2.0
 ```
 
+---
+
+# 30. Final Project Status
+
+The implemented project contains:
+
+- V1 MVP
+- Async SQLAlchemy + SQLite
+- Repository and service layers
+- Bayesian recommendation engine
+- Genre and media-type preference scoring
+- Media Factory Pattern
+- Redis review caching
+- Cache invalidation
+- Observer notifications
+- Multithreaded bulk review processing
+- bcrypt password hashing
+- Authentication
+- Application session management
+- Textual terminal UI
+- Logging
+- Unit tests
+- Git versioning
+
+The final V2 milestone is represented by:
+
+```text
+v2.0
+```
