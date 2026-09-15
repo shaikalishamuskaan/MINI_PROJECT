@@ -1,6 +1,6 @@
 # Media Review System
 
-A CLI-based media review and recommendation system built using Python, SQLAlchemy, SQLite, Redis, and Textual.
+A terminal-based media review and recommendation system built using Python, SQLAlchemy, SQLite, Redis, and Textual.
 
 The system allows users to manage media, submit reviews and ratings, favorite media, receive personalized recommendations, and receive notifications when reviews are added to favorited media.
 
@@ -51,7 +51,6 @@ The project is developed in two versions:
 - SQLite
 - Redis
 - Memurai (Windows Redis-compatible server)
-- argparse
 - Textual
 - bcrypt
 - pytest
@@ -67,7 +66,7 @@ The project is developed in two versions:
 The application follows a layered architecture:
 
 ```text
-                 CLI / Textual UI
+                 Textual UI
                         |
                         v
                  Service Layer
@@ -85,7 +84,7 @@ The application follows a layered architecture:
 V2 adds supporting components:
 
 ```text
-CLI / Textual UI
+Textual UI
        |
        v
 Service Layer
@@ -418,35 +417,7 @@ Windows PowerShell:
 python -m app.ui
 ```
 
-### 3. Run the original CLI
-
-Display available commands:
-
-```powershell
-python media_review.py --help
-```
-
-Example commands:
-
-```powershell
-python media_review.py --list
-python media_review.py --search "Inception"
-python media_review.py --top-rated
-python media_review.py --reviews 1
-python media_review.py --recommend 1
-```
-
-Submit a review:
-
-```powershell
-python media_review.py --review <media_id> <rating> "<comment>" --user-id <user_id>
-```
-
-Bulk reviews:
-
-```powershell
-python media_review.py --bulk-review reviews.csv --user-id <user_id>
-```
+The Textual UI is the current application entry point.
 
 ---
 
@@ -498,7 +469,6 @@ MINI_PROJECT/
 ├── logs/
 │   └── media_review.log
 │
-├── media_review.py
 ├── DESIGN DOC.md
 ├── requirments.txt
 ├── pytest.ini

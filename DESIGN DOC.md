@@ -14,7 +14,7 @@ The project is developed in two product versions:
 
 ### V1 — Basic Working Product
 
-V1 focuses on a clean working MVP using Python, SQLite, SQLAlchemy, `argparse`, Python `logging`, `pytest`, and Git.
+V1 focuses on a clean working MVP using Python, SQLite, SQLAlchemy, Python `logging`, `pytest`, and Git.
 
 V1 includes:
 
@@ -281,8 +281,8 @@ Development is represented through meaningful Git commits for major features.
 | Area | Technology |
 |---|---|
 | Language | Python |
-| CLI | argparse |
 | Terminal UI | Textual |
+|
 | Database | SQLite |
 | ORM | SQLAlchemy 2.x |
 | Async SQLite Driver | aiosqlite |
@@ -398,7 +398,7 @@ The system follows a layered architecture.
 The main request path is:
 
 ```text
-CLI / Textual UI
+Textual UI
         |
         v
 Service Layer
@@ -416,7 +416,7 @@ SQLite
 V2 adds supporting components around the core flow:
 
 ```text
-                         CLI / Textual UI
+                         Textual UI
                                 |
                                 v
                          Service Layer
@@ -441,7 +441,7 @@ V2 adds supporting components around the core flow:
 
 ```mermaid
 graph TD
-    UI["CLI / Textual UI"]
+    UI["Textual UI"]
 
     subgraph Application["Application Layer"]
         SERVICE["Service Layer"]
@@ -485,6 +485,8 @@ graph TD
 
 ### UI
 
+The Textual UI is the application's presentation layer.
+
 Responsible for:
 
 - Accepting user input
@@ -493,7 +495,7 @@ Responsible for:
 - Displaying notifications
 - Triggering application services
 
-The Textual UI is the primary rich terminal interface. The argparse CLI remains available for command-line operations.
+The Textual UI is the application's terminal interface.
 
 ### Service Layer
 
@@ -1157,7 +1159,7 @@ Passwords are never logged.
 
 ```mermaid
 flowchart TD
-    U["User"] --> UI["CLI / Textual"]
+    U["User"] --> UI["Textual UI"]
     UI --> S["ReviewService"]
     S --> V["Validate User / Media / Rating / Comment"]
     V --> R["ReviewRepository"]
@@ -1213,7 +1215,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    U["User"] --> UI["CLI / Textual"]
+    U["User"] --> UI["Textual UI"]
     UI --> S["MediaService"]
     S --> R["MediaRepository"]
     R --> ORM["SQLAlchemy"]
@@ -1284,6 +1286,8 @@ flowchart TD
 ---
 
 # 21. Textual UI Design
+
+The Textual UI is the primary and current application entry point.
 
 The Textual UI is implemented in:
 
@@ -1457,7 +1461,6 @@ MINI_PROJECT/
 ├── logs/
 │   └── media_review.log
 │
-├── media_review.py
 ├── DESIGN DOC.md
 ├── requirments.txt
 ├── pytest.ini
@@ -1609,7 +1612,7 @@ This demonstrates how a simple working product can evolve into a more capable an
 flowchart TD
     USER["User"]
 
-    UI["CLI / Textual UI"]
+    UI["Textual UI"]
 
     SERVICE["Service Layer"]
     AUTH["AuthService"]
@@ -1713,3 +1716,4 @@ The final V2 milestone is represented by:
 ```text
 v2.0
 ```
+v
